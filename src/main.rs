@@ -1,7 +1,8 @@
+use std::fs;
 use std::io::{prelude::*, BufReader};
 use std::net::{TcpListener, TcpStream};
-
-static CLRF: &str = "\r\n\r\n";
+use std::thread;
+use std::time::Duration;
 
 struct RequestLine {
     method: String,
@@ -43,14 +44,14 @@ fn handle_connection(mut stream: TcpStream) {
 
     println!("request: {:#?}", http_request);
 
-    let request_line = parse_request(http_request);
+    let request_line = get_request_line(http_request);
     let response = match request_line {
-        Some(request_line) => route(request_line),
+        Some(request_line) => route(&request_line),
         None => return,
     };
 
     stream
-        .write_all(format!("{response}{CLRF}").as_bytes())
+        .write_all(format!("{response}\r\n\r\n").as_bytes())
         .unwrap_or_else(|e| {
             eprintln!("failed to write to buffer. error: {e}");
         });
@@ -58,7 +59,7 @@ fn handle_connection(mut stream: TcpStream) {
     stream.flush().unwrap();
 }
 
-fn parse_request(http_request: Vec<String>) -> Option<RequestLine> {
+fn get_request_line(http_request: Vec<String>) -> Option<RequestLine> {
     let start_line = &http_request[0];
     let parts = start_line.split_whitespace().collect::<Vec<&str>>();
     let request_line: RequestLine;
@@ -75,9 +76,32 @@ fn parse_request(http_request: Vec<String>) -> Option<RequestLine> {
     }
 }
 
-fn route(request_line: RequestLine) -> &'static str {
-    match request_line.path.as_str() {
+fn route(request_line: &RequestLine) -> String {
+    let status_line = match request_line.path.as_str() {
+        s if s.starts_with("/echo/") => "HTTP/1.1 200 OK",
+        s if s.starts_with("/sleep") => "HTTP/1.1 200 OK",
         "/" => "HTTP/1.1 200 OK",
-        _ => "HTTP/1.1 404 Not Found",
-    }
+        _ => "HTTP/1.1 404 NOT FOUND",
+    };
+    let content_path = match request_line.path.as_str() {
+        "/" => "static/hello_world.html",
+        s if s.starts_with("/echo/") => "",
+        s if s.starts_with("/sleep") => "",
+        _ => "static/not_found.html",
+    };
+    let content = match request_line.path.as_str() {
+        s if s.starts_with("/echo/") => {
+            let (_prefix, suffix) = request_line.path.split_at(6);
+            String::from(suffix)
+        }
+        s if s.starts_with("/sleep") => {
+            thread::sleep(Duration::from_secs(5));
+            String::from("woke from sleep!")
+        }
+        _ => fs::read_to_string(content_path).expect("failed to read file"),
+    };
+    let content_length = content.len();
+    let content_length_line = format!("Content-Length: {content_length}");
+
+    format!("{status_line}\r\n{content_length_line}\r\n\r\n{content}")
 }

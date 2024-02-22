@@ -5,4 +5,4 @@ authors = []
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.59"                                   # error handling
+anyhow = "1.0.80"
