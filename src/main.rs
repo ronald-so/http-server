@@ -1,3 +1,8 @@
+mod http;
+mod router;
+
+use crate::http::parse_request;
+use crate::router::handle_request;
 use std::fs;
 use std::io::{prelude::*, BufReader};
 use std::net::{TcpListener, TcpStream};
@@ -36,15 +41,19 @@ fn listen(listener: TcpListener) {
 
 fn handle_connection(mut stream: TcpStream) {
     let buf_reader = BufReader::new(&stream);
-    let http_request: Vec<String> = buf_reader
+    let raw_request: Vec<String> = buf_reader
         .lines()
         .map(|line| line.unwrap())
         .take_while(|line| !line.is_empty())
         .collect();
 
-    println!("request: {:#?}", http_request);
+    let request = parse_request(&raw_request);
+    let response = match request {
+        Ok(request) => handle_request(&request),
+        Err(_) => println!("Failed to parse HTTP request"),
+    };
 
-    let request_line = get_request_line(http_request);
+    let request_line = get_request_line(raw_request);
     let response = match request_line {
         Some(request_line) => route(&request_line),
         None => return,
@@ -53,9 +62,9 @@ fn handle_connection(mut stream: TcpStream) {
     stream
         .write_all(format!("{response}\r\n\r\n").as_bytes())
         .unwrap_or_else(|e| {
-            eprintln!("failed to write to buffer. error: {e}");
+            eprintln!("Failed to write to buffer. Error: {e}");
         });
-    println!("response: {response}");
+    println!("Response: {response}");
     stream.flush().unwrap();
 }
 
