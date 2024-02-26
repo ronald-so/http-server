@@ -3,17 +3,26 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct HttpRequest {
-    method: String,
-    path: String,
-    protocol: String,
-    host: String,
-    headers: HashMap<String, String>,
-    // content: None,
+    pub method: String,
+    pub path: String,
+    pub protocol: String,
+    pub host: String,
+    pub headers: HashMap<String, String>,
 }
 
+#[derive(Copy, Clone)]
 pub enum StatusCode {
     Ok = 200,
     BadRequest = 400,
+}
+
+impl StatusCode {
+    pub fn get_status_text(&self) -> &'static str {
+        match self {
+            StatusCode::Ok => "OK",
+            StatusCode::BadRequest => "Bad Request",
+        }
+    }
 }
 
 impl fmt::Display for StatusCode {
@@ -26,19 +35,30 @@ impl fmt::Display for StatusCode {
 }
 
 pub struct HttpResponse {
-    status_code: StatusCode,
-    protocol: String,
-    status_text: String,
-    headers: HashMap<String, String>,
-    // content: None,
+    pub status_code: StatusCode,
+    pub protocol: String,
+    pub status_text: String,
+    pub headers: HashMap<String, String>,
+    pub content: String,
 }
 
 impl HttpResponse {
-    fn get_status_line(&self) -> String {
+    pub fn get_status_line(&self) -> String {
         format!(
             "{} {} {}",
             self.protocol, self.status_code, self.status_text
         )
+    }
+
+    pub fn as_bytes(&self) -> Vec<u8> {
+        let status_line = self.get_status_line();
+        let content_length = format!("Content-Length: {}", self.content.len());
+
+        format!(
+            "{}\r\n{}\r\n\r\n{}",
+            status_line, content_length, self.content
+        )
+        .into_bytes()
     }
 }
 
