@@ -6,6 +6,7 @@ use std::time::Duration;
 
 pub fn handle_request(request: &HttpRequest) -> HttpResponse {
     let (status_code, content) = route(&request.path);
+
     HttpResponse {
         status_code,
         content,

@@ -5,6 +5,7 @@ use crate::http::parse_request;
 use crate::router::handle_request;
 use std::io::{prelude::*, BufReader};
 use std::net::{TcpListener, TcpStream};
+use std::thread;
 
 fn main() {
     let port = "4221";
@@ -21,7 +22,9 @@ fn listen(listener: TcpListener) {
     for stream in listener.incoming() {
         match stream {
             Ok(mut _stream) => {
-                handle_connection(_stream);
+                thread::spawn(|| {
+                    handle_connection(_stream);
+                });
             }
             Err(e) => {
                 println!("error: {}", e);
