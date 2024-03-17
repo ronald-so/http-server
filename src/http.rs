@@ -77,7 +77,7 @@ pub fn parse_request(request: &Vec<String>) -> Result<HttpRequest, ()> {
             headers,
         };
 
-        println!("http request: {:#?}", http_request);
+        // println!("http request: {:#?}", http_request);
 
         Ok(http_request)
     } else {
