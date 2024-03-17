@@ -24,14 +24,9 @@ fn main() {
 fn listen(listener: TcpListener, thread_pool: ThreadPool) {
     for stream in listener.incoming() {
         match stream {
-            Ok(mut _stream) => {
-                // thread::spawn(|| {
-                //     handle_connection(_stream);
-                // });
-                thread_pool.execute(|| {
-                    handle_connection(_stream);
-                })
-            }
+            Ok(mut _stream) => thread_pool.execute(|| {
+                handle_connection(_stream);
+            }),
             Err(e) => {
                 println!("error: {}", e);
             }
