@@ -1,30 +1,36 @@
 mod http;
 mod router;
 
+use http_server::thread_pool::ThreadPool;
+
 use crate::http::parse_request;
 use crate::router::handle_request;
 use std::io::{prelude::*, BufReader};
 use std::net::{TcpListener, TcpStream};
-use std::thread;
+// use std::thread;
 
 fn main() {
     let port = "4221";
     let addr = format!("127.0.0.1:{port}");
     let listener = TcpListener::bind(addr).unwrap();
+    let thread_pool = ThreadPool::new(4);
 
     println!("http server started!");
     println!("listening for connections on port {port}");
 
-    listen(listener);
+    listen(listener, thread_pool);
 }
 
-fn listen(listener: TcpListener) {
+fn listen(listener: TcpListener, thread_pool: ThreadPool) {
     for stream in listener.incoming() {
         match stream {
             Ok(mut _stream) => {
-                thread::spawn(|| {
+                // thread::spawn(|| {
+                //     handle_connection(_stream);
+                // });
+                thread_pool.execute(|| {
                     handle_connection(_stream);
-                });
+                })
             }
             Err(e) => {
                 println!("error: {}", e);
